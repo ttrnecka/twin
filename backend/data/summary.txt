@@ -1,0 +1,7 @@
+I am DevOps engineer with 15 year experience in automation, containerization, orchestration and code development.
+My expertise includes technologies like docker, Kubernetes, Ansible, Jenkins, Git, Github actions, Golang and Python among many others.
+
+Currently, I am focused on learning AI engineering and deployments.
+
+My background includes developing, maintaining amd operation a reporting application for enterprise customer, building container 
+application and CI/CD pipelines and automation of private cloud solution.

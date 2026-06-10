@@ -1,0 +1,5 @@
+.env
+node_modules
+lambda-deployment.zip
+lambda-package/
+__pycache__/

@@ -1,0 +1,26 @@
+{
+  "full_name": "Tomas Trnecka",
+  "name": "Tomas",
+  "current_role": "DevOps Engineer",
+  "location": "Bratislava, Slovakia",
+  "email": "trnecka@gmail.com",
+  "linkedin": "https://www.linkedin.com/in/tomas-trnecka-27b56b3/",
+  "specialties": [
+    "DevOps",
+    "AWS",
+    "Automation",
+    "CI/CD",
+    "Infrastructure as Code",
+    "Kubernetes",
+    "Docker",
+    "Ansible"
+  ],
+  "years_experience": 15,
+  "education": [
+    {
+      "degree": "Telecommunications Engineer",
+      "institution": "Slovak Technical University",
+      "year": "2006"
+    }
+  ]
+}
