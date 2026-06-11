@@ -26,6 +26,7 @@ jobs:
           cache: 'npm'       
 
       - name: Install Dependencies & Build
+        working-directory: ./frontend
         run: |
           npm ci
           npm run build
