@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1 --webpack --port 3000",
-    "build": "next build --webpack",
+    "dev": "esbuild scripts/chat-widget.ts --bundle --minify --outfile=public/chat-widget.js && next dev -H 127.0.0.1 --webpack --port 3000",
+    "build": "esbuild scripts/chat-widget.ts --bundle --minify --outfile=public/chat-widget.js && next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -19,6 +19,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",

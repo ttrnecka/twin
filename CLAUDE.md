@@ -52,6 +52,15 @@ uv run python deploy.py              # produces lambda-deployment.zip
 
 Two parallel dependency files exist: `pyproject.toml` (used by `uv` for local dev) and `requirements.txt` (used by `deploy.py` inside the Lambda Docker image). Keep them in sync when adding deps.
 
+### Deploying frontend to Cloudfront
+
+```
+cd frontend
+npm run build
+aws s3 sync out/ s3://twin-frontend-tt2026 --delete
+```
+Create invalidation in CF gui
+
 ## Frontend
 
 ### Critical: this is Next.js 16, not earlier versions
