@@ -1,6 +1,27 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.d/
+*.tfvars
+!terraform.tfvars
+!prod.tfvars
+
 .env
+.env.production
 node_modules
 lambda-deployment.zip
 lambda-package/
 __pycache__/
 chat-widget.js
+
+out/
+.next/
+
+__pycache__/
+*.pyc
+.venv/
+uv.lock
+
+.vscode/

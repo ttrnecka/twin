@@ -1,12 +1,11 @@
 (() => {
   // 1. Dynamically find the running script tag to grab the origin domain
   const currentScript = document.currentScript as HTMLScriptElement;
-  let baseUrl = 'https://d28bn9bh29seej.cloudfront.net'; // Fallback production URL
+  let baseUrl = process.env.NEXT_PUBLIC_FRONT_URL || 'http://localhost:8000'; // Fallback if parsing fails
 
   if (currentScript && currentScript.src) {
     try {
       const url = new URL(currentScript.src);
-      // Grabs "http://localhost:3000" or "https://d28bn9bh29seej.cloudfront.net"
       baseUrl = url.origin;
     } catch (e) {
       console.error('Failed to parse widget script origin, using default fallback.', e);
@@ -67,7 +66,7 @@
 
     <button class="chat-trigger" id="widget-btn">💬</button>
     <div class="chat-window" id="widget-window">
-      <iframe src="${baseUrl}/chat-embed"></iframe>
+      <iframe src="${baseUrl}/chat-embed.html"></iframe>
     </div>
   `;
 

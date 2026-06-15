@@ -48,6 +48,10 @@ Required/used env vars: `OPENAI_API_KEY`, `CORS_ORIGINS` (comma-separated), `USE
 ```bash
 cd backend
 uv run python deploy.py              # produces lambda-deployment.zip
+aws lambda update-function-code \
+    --function-name twin-api \
+    --zip-file fileb://lambda-deployment.zip \
+    --region us-east-1
 ```
 
 Two parallel dependency files exist: `pyproject.toml` (used by `uv` for local dev) and `requirements.txt` (used by `deploy.py` inside the Lambda Docker image). Keep them in sync when adding deps.
