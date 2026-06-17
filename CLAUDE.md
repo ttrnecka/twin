@@ -19,7 +19,6 @@ The two are wired together by the hardcoded API URL in `frontend/components/twin
 - `resources.py` reads the persona files **once at import time** from `backend/data/`: `facts.json`, `summary.txt`, `style.txt`, `linkedin.pdf`. Changing those files requires a server restart (and a re-deploy for Lambda). `linkedin.pdf` is parsed with `pypdf`; missing file is handled, missing `.txt`/`.json` will crash on startup.
 - `context.py` builds the system prompt from the resources. The prompt is regenerated per-request (so `datetime.now()` is fresh) but the underlying persona data is the cached module-level state from `resources.py`.
 - `lambda_handler.py` is a 3-line Mangum adapter — the Lambda entrypoint is `lambda_handler.handler`.
-- `test.py` is a standalone smoke script that uses `me.txt` (not the `data/` pipeline). It is **not** wired to `server.py` and is not a real test suite — there is no test framework configured.
 
 ### Conversation memory
 

@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 interface Message {
     id: string;
@@ -154,13 +157,23 @@ export default function Twin() {
                         )}
 
                         <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
+                            className={`max-w-[70%] prose prose-slate rounded-lg p-3 ${
                                 message.role === 'user'
                                     ? 'bg-slate-700 text-white'
                                     : 'bg-white border border-gray-200 text-gray-800'
                             }`}
                         >
-                            <p className="whitespace-pre-wrap">{message.content}</p>
+                                <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]} 
+                                    rehypePlugins={[rehypeRaw]}
+                                    // components={{
+                                    // // This forces a clean Tailwind margin on every paragraph element
+                                    // p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+                                    
+                                    // }}
+                                >
+                                    {message.content}
+                                </ReactMarkdown>
                             <p
                                 className={`text-xs mt-1 ${
                                     message.role === 'user' ? 'text-slate-300' : 'text-gray-500'

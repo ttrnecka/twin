@@ -2,8 +2,10 @@
 import * as esbuild from 'esbuild';
 import dotenv from 'dotenv';
 
+const environment = process.env.NODE_ENV || 'dev';
+
 // 1. Load the specific .env file
-dotenv.config({ path: '.env.production' });
+dotenv.config({ path: `.env.${environment}` });
 
 // 2. Prepare the variables you want to inject
 // esbuild requires the values in 'define' to be JSON-stringified strings
