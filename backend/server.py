@@ -10,6 +10,7 @@ from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
 from context import prompt
+import traceback
 
 # Load environment variables
 load_dotenv()
@@ -111,10 +112,11 @@ def call_bedrock(conversation: List[Dict], user_message: str) -> str:
     
     # Add system prompt as first user message
     # Or there's a better way to do this - pass in system=[{"text": prompt()}] to the converse call below
-    messages.append({
-        "role": "user", 
-        "content": [{"text": f"System: {prompt()}"}]
-    })
+    # messages.append({
+    #     "role": "user", 
+    #     "content": [{"text": f"System: {prompt()}"}]
+    # })
+    system_prompt = [{"text": f"System: {prompt()}"}]
     
     # Add conversation history (limit to last 25 exchanges)
     for msg in conversation[-50:]:
@@ -134,15 +136,18 @@ def call_bedrock(conversation: List[Dict], user_message: str) -> str:
         response = bedrock_client.converse(
             modelId=BEDROCK_MODEL_ID,
             messages=messages,
+            system=system_prompt,
             inferenceConfig={
                 "maxTokens": 2000,
-                "temperature": 0.7,
+                "temperature": 0.9,
                 "topP": 0.9
             }
         )
         
         # Extract the response text
-        return response["output"]["message"]["content"][0]["text"]
+        content_list = response["output"]["message"]["content"]
+        target_dict = next((item for item in content_list if "text" in item), None)
+        return target_dict["text"]
         
     except ClientError as e:
         error_code = e.response['Error']['Code']
@@ -186,6 +191,7 @@ async def chat(request: ChatRequest):
         # Load conversation history
         conversation = load_conversation(session_id)
 
+        print("CHAT")
         # Call Bedrock for response
         assistant_response = call_bedrock(conversation, request.message)
 
@@ -210,6 +216,8 @@ async def chat(request: ChatRequest):
         raise
     except Exception as e:
         print(f"Error in chat endpoint: {str(e)}")
+        print("\n--- Full Exception Traceback (Detailed) ---")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
