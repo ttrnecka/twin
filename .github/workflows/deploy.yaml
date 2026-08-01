@@ -14,7 +14,10 @@ on:
           - dev
           - test
           - prod
-
+env:
+  NODE_VERSION: '24'
+  UV_VERSION: '0.12.0'
+  
 permissions:
   id-token: write
   contents: read
@@ -37,14 +40,14 @@ jobs:
           aws-region: ${{ secrets.DEFAULT_AWS_REGION }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: 'backend/.python-version'
 
       - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -54,7 +57,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
