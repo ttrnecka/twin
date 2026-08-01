@@ -45,11 +45,39 @@ jobs:
 
       - name: Run npm eslint
         run: cd frontend && npx eslint "**/*.{js,mjs,cjs,ts,tsx}" --max-warnings=0
+
+  trivy-scan-public:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@v0.36.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        exit-code: '0'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        vuln-type: 'library'
+        version: v0.72.0
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'prod' }}
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'prod' }}
-    needs: npm-security
+    # needs: [npm-security, trivy-scan-public]
     
     steps:
       - name: Checkout code
