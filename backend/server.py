@@ -1,16 +1,20 @@
+import json
+import logging
+import os
+import traceback
+import uuid
+from datetime import datetime
+
+import boto3
+from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import os
-from dotenv import load_dotenv
-from typing import Optional, List, Dict
-import json
-import uuid
-from datetime import datetime
-import boto3
-from botocore.exceptions import ClientError
+
 from context import prompt
-import traceback
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -49,7 +53,7 @@ if USE_S3:
 # Request/Response models
 class ChatRequest(BaseModel):
     message: str
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -68,7 +72,7 @@ def get_memory_path(session_id: str) -> str:
     return f"{session_id}.json"
 
 
-def load_conversation(session_id: str) -> List[Dict]:
+def load_conversation(session_id: str) -> list[dict]:
     """Load conversation history from storage"""
     if USE_S3:
         try:
@@ -87,7 +91,7 @@ def load_conversation(session_id: str) -> List[Dict]:
         return []
 
 
-def save_conversation(session_id: str, messages: List[Dict]):
+def save_conversation(session_id: str, messages: list[dict]):
     """Save conversation history to storage"""
     if USE_S3:
         s3_client.put_object(
@@ -104,7 +108,7 @@ def save_conversation(session_id: str, messages: List[Dict]):
             json.dump(messages, f, indent=2)
 
 
-def call_bedrock(conversation: List[Dict], user_message: str) -> str:
+def call_bedrock(conversation: list[dict], user_message: str) -> str:
     """Call AWS Bedrock with conversation history"""
     
     # Build messages in Bedrock format
@@ -160,7 +164,7 @@ def call_bedrock(conversation: List[Dict], user_message: str) -> str:
             raise HTTPException(status_code=403, detail="Access denied to Bedrock model")
         else:
             print(f"Bedrock error: {e}")
-            raise HTTPException(status_code=500, detail=f"Bedrock error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Bedrock error: {e!s}")
 
 
 @app.get("/")
@@ -196,13 +200,13 @@ async def chat(request: ChatRequest):
 
         # Update conversation history
         conversation.append(
-            {"role": "user", "content": request.message, "timestamp": datetime.now().isoformat()}
+            {"role": "user", "content": request.message, "timestamp": datetime.now(tz=datetime.UTC).isoformat()}
         )
         conversation.append(
             {
                 "role": "assistant",
                 "content": assistant_response,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=datetime.UTC).isoformat(),
             }
         )
 
@@ -214,8 +218,8 @@ async def chat(request: ChatRequest):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")
-        print("\n--- Full Exception Traceback (Detailed) ---")
+        logger.exception("Error in chat endpoint")
+        logger.error("\n--- Full Exception Traceback (Detailed) ---")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -227,6 +231,9 @@ async def get_conversation(session_id: str):
         conversation = load_conversation(session_id)
         return {"session_id": session_id, "messages": conversation}
     except Exception as e:
+        logger.exception("Error in chat endpoint")
+        logger.error("\n--- Full Exception Traceback (Detailed) ---")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -46,6 +46,34 @@ jobs:
       - name: Run npm eslint
         run: cd frontend && npx eslint "**/*.{js,mjs,cjs,ts,tsx}" --max-warnings=0
 
+  python-security:
+    name: Python security scans
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: 'backend/.python-version'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Ruff
+        run: uv run ruff check .
+
+      - name: pip audit
+        run: uv run pip-audit
+
   trivy-scan-public:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest

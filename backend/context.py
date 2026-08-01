@@ -1,6 +1,6 @@
-from resources import linkedin, summary, facts, style
 from datetime import datetime
 
+from resources import facts, linkedin, style, summary
 
 full_name = facts["full_name"]
 name = facts["name"]
@@ -31,7 +31,7 @@ Here are some notes from {name} about their communications style:
 
 
 For reference, here is the current date and time:
-{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+{datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")}
 
 ## Your task
 
