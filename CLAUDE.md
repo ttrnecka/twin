@@ -99,3 +99,18 @@ There is no test runner configured for the frontend.
 ### Structure
 
 App Router only — `app/layout.tsx`, `app/page.tsx`, `app/globals.css`. The chat UI is a single client component, `components/twin.tsx`, imported as `@/components/twin` (path alias from `tsconfig.json`).
+
+## Security
+
+### Node
+
+npm audit
+npm fix
+npm update
+
+
+### Python
+
+uv run ruff check .
+
+uv run pip-audit
