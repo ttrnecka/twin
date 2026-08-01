@@ -191,7 +191,6 @@ async def chat(request: ChatRequest):
         # Load conversation history
         conversation = load_conversation(session_id)
 
-        print("CHAT")
         # Call Bedrock for response
         assistant_response = call_bedrock(conversation, request.message)
 
