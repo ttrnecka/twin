@@ -49,6 +49,7 @@ jobs:
     name: Deploy to ${{ github.event.inputs.environment || 'prod' }}
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'prod' }}
+    needs: npm-security
     
     steps:
       - name: Checkout code
