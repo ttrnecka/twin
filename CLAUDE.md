@@ -11,6 +11,16 @@ An "AI Digital Twin" — a chatbot that impersonates the repo owner on their web
 
 The two are wired together by the hardcoded API URL in `frontend/components/twin.tsx` (the `fetch()` call to API Gateway). When changing the deployed endpoint, update that string — there is no env-var indirection on the frontend.
 
+## Dependencies
+
+### Mise
+Setup mise https://mise.jdx.dev/getting-started.html
+
+
+#### Install dependencies
+
+```mise install``
+
 ## Backend
 
 ### Layout & data flow
