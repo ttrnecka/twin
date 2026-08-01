@@ -3,7 +3,7 @@ import logging
 import os
 import traceback
 import uuid
-from datetime import datetime
+import datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -200,13 +200,13 @@ async def chat(request: ChatRequest):
 
         # Update conversation history
         conversation.append(
-            {"role": "user", "content": request.message, "timestamp": datetime.now(tz=datetime.UTC).isoformat()}
+            {"role": "user", "content": request.message, "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()}
         )
         conversation.append(
             {
                 "role": "assistant",
                 "content": assistant_response,
-                "timestamp": datetime.now(tz=datetime.UTC).isoformat(),
+                "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat(),
             }
         )
 

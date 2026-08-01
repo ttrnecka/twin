@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 from resources import facts, linkedin, style, summary
 
@@ -31,7 +31,7 @@ Here are some notes from {name} about their communications style:
 
 
 For reference, here is the current date and time:
-{datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")}
+{datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")}
 
 ## Your task
 
