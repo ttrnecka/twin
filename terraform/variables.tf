@@ -28,6 +28,12 @@ variable "lambda_timeout" {
   default     = 60
 }
 
+variable "lambda_memory_size" {
+  description = "Lambda function memory size in MB"
+  type        = number
+  default     = 256
+}
+
 variable "api_throttle_burst_limit" {
   description = "API Gateway throttle burst limit"
   type        = number

@@ -171,6 +171,7 @@ resource "aws_lambda_function" "api" {
   architectures    = ["x86_64"]
   timeout          = var.lambda_timeout
   tags             = local.common_tags
+  memory_size      = var.lambda_memory_size
 
   environment {
     variables = {
