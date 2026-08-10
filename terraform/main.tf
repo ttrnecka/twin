@@ -14,6 +14,9 @@ locals {
 
   name_prefix = "${var.project_name}-${var.environment}"
 
+  # Lambda deployment artifact built by backend/deploy.py
+  lambda_zip = "${path.module}/../backend/lambda-deployment.zip"
+
   common_tags = {
     Project     = var.project_name
     Environment = var.environment
@@ -124,13 +127,46 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   role       = aws_iam_role.lambda_role.name
 }
 
+# S3 bucket for Lambda deployment artifacts (zip is too large for direct upload)
+resource "aws_s3_bucket" "lambda_artifacts" {
+  bucket = "${local.name_prefix}-lambda-artifacts-${data.aws_caller_identity.current.account_id}"
+  tags   = local.common_tags
+}
+
+resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+# Upload the deployment zip; re-uploads whenever the local zip changes
+resource "aws_s3_object" "lambda_zip" {
+  bucket      = aws_s3_bucket.lambda_artifacts.id
+  key         = "lambda/lambda-deployment.zip"
+  source      = local.lambda_zip
+  source_hash = filemd5(local.lambda_zip)
+  tags        = local.common_tags
+}
+
 # Lambda function
 resource "aws_lambda_function" "api" {
-  filename         = "${path.module}/../backend/lambda-deployment.zip"
+  s3_bucket        = aws_s3_object.lambda_zip.bucket
+  s3_key           = aws_s3_object.lambda_zip.key
   function_name    = "${local.name_prefix}-api"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_handler.handler"
-  source_code_hash = filebase64sha256("${path.module}/../backend/lambda-deployment.zip")
+  source_code_hash = filebase64sha256(local.lambda_zip)
   runtime          = "python3.12"
   architectures    = ["x86_64"]
   timeout          = var.lambda_timeout
@@ -145,8 +181,8 @@ resource "aws_lambda_function" "api" {
     }
   }
 
-  # Ensure Lambda waits for the distribution to exist
-  depends_on = [aws_cloudfront_distribution.main]
+  # Ensure the zip is uploaded and the distribution exists first
+  depends_on = [aws_s3_object.lambda_zip, aws_cloudfront_distribution.main]
 }
 
 # API Gateway HTTP API

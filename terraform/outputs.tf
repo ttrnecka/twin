@@ -23,6 +23,11 @@ output "lambda_function_name" {
   value       = aws_lambda_function.api.function_name
 }
 
+output "s3_lambda_artifacts_bucket" {
+  description = "Name of the S3 bucket holding the Lambda deployment zip"
+  value       = aws_s3_bucket.lambda_artifacts.id
+}
+
 output "custom_domain_url" {
   description = "Root URL of the production site"
   value       = var.use_custom_domain ? "https://digitaltwin.${var.root_domain}" : ""
