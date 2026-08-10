@@ -1,15 +1,17 @@
+import datetime
 import json
 import logging
 import os
 import traceback
 import uuid
-import datetime
 
 import boto3
 from botocore.exceptions import ClientError
+from deepagents import create_deep_agent
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_aws import ChatBedrockConverse
 from pydantic import BaseModel
 
 from context import prompt
@@ -31,14 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Bedrock client - see Q42 on https://edwarddonner.com/faq if the Region gives you problems
-bedrock_client = boto3.client(
-    service_name="bedrock-runtime", 
-    region_name=os.getenv("DEFAULT_AWS_REGION", "us-east-1")
-)
-
-# Bedrock model selection - see Q42 on https://edwarddonner.com/faq for more
+# Bedrock configuration - see Q42 on https://edwarddonner.com/faq if the Region gives you problems
+AWS_REGION = os.getenv("DEFAULT_AWS_REGION", "us-east-1")
 BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
+
+# LangChain chat model backed by AWS Bedrock. Created once at import time and
+# reused across requests (the deep agent is rebuilt per request so the system
+# prompt's datetime stays fresh).
+bedrock_model = ChatBedrockConverse(
+    model_id=BEDROCK_MODEL_ID,
+    region_name=AWS_REGION,
+    max_tokens=2000,
+    temperature=0.9,
+    top_p=0.9,
+)
 
 # Memory storage configuration
 USE_S3 = os.getenv("USE_S3", "false").lower() == "true"
@@ -108,58 +116,49 @@ def save_conversation(session_id: str, messages: list[dict]):
             json.dump(messages, f, indent=2)
 
 
-def call_bedrock(conversation: list[dict], user_message: str) -> str:
-    """Call AWS Bedrock with conversation history"""
-    
-    # Build messages in Bedrock format
-    messages = []
-    
-    # Add system prompt as first user message
-    # Or there's a better way to do this - pass in system=[{"text": prompt()}] to the converse call below
-    # messages.append({
-    #     "role": "user", 
-    #     "content": [{"text": f"System: {prompt()}"}]
-    # })
-    system_prompt = [{"text": f"System: {prompt()}"}]
-    
-    # Add conversation history (limit to last 25 exchanges)
-    for msg in conversation[-50:]:
-        messages.append({
-            "role": msg["role"],
-            "content": [{"text": msg["content"]}]
-        })
-    
-    # Add current user message
-    messages.append({
-        "role": "user",
-        "content": [{"text": user_message}]
-    })
-    
+def _extract_text(content) -> str:
+    """Normalize a LangChain message's content to plain text.
+
+    Bedrock (via ChatBedrockConverse) may return either a plain string or a
+    list of content blocks; flatten either into a single string.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and "text" in block:
+                parts.append(block["text"])
+        return "".join(parts)
+    return str(content)
+
+
+async def call_bedrock(conversation: list[dict], user_message: str) -> str:
+    """Run the LangChain deep agent (backed by AWS Bedrock) with history."""
+
+    # Build the deep agent per request so the system prompt's datetime is fresh.
+    agent = create_deep_agent(model=bedrock_model, system_prompt=prompt())
+
+    # Convert stored history into LangChain-style messages, dropping metadata
+    # such as timestamps and keeping only the last 50 turns.
+    messages = [
+        {"role": msg["role"], "content": msg["content"]}
+        for msg in conversation[-50:]
+    ]
+    messages.append({"role": "user", "content": user_message})
+
     try:
-        # Call Bedrock using the converse API
-        response = bedrock_client.converse(
-            modelId=BEDROCK_MODEL_ID,
-            messages=messages,
-            system=system_prompt,
-            inferenceConfig={
-                "maxTokens": 2000,
-                "temperature": 0.9,
-                "topP": 0.9
-            }
-        )
-        
-        # Extract the response text
-        content_list = response["output"]["message"]["content"]
-        target_dict = next((item for item in content_list if "text" in item), None)
-        return target_dict["text"]
-        
+        result = await agent.ainvoke({"messages": messages})
+        return _extract_text(result["messages"][-1].content)
+
     except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == 'ValidationException':
-            # Handle message format issues
+        error_code = e.response["Error"]["Code"]
+        if error_code == "ValidationException":
             print(f"Bedrock validation error: {e}")
             raise HTTPException(status_code=400, detail="Invalid message format for Bedrock")
-        elif error_code == 'AccessDeniedException':
+        elif error_code == "AccessDeniedException":
             print(f"Bedrock access denied: {e}")
             raise HTTPException(status_code=403, detail="Access denied to Bedrock model")
         else:
@@ -170,7 +169,7 @@ def call_bedrock(conversation: list[dict], user_message: str) -> str:
 @app.get("/")
 async def root():
     return {
-        "message": "AI Digital Twin API (Powered by AWS Bedrock)",
+        "message": "AI Digital Twin API (LangChain Deep Agents on AWS Bedrock)",
         "memory_enabled": True,
         "storage": "S3" if USE_S3 else "local",
         "ai_model": BEDROCK_MODEL_ID
@@ -195,8 +194,8 @@ async def chat(request: ChatRequest):
         # Load conversation history
         conversation = load_conversation(session_id)
 
-        # Call Bedrock for response
-        assistant_response = call_bedrock(conversation, request.message)
+        # Call the Bedrock-backed deep agent for a response
+        assistant_response = await call_bedrock(conversation, request.message)
 
         # Update conversation history
         conversation.append(
