@@ -48,6 +48,10 @@ bedrock_model = ChatBedrockConverse(
     top_p=0.9,
 )
 
+sns_topic_arn = os.getenv("SNS_TOPIC_ARN", None)
+
+sns = boto3.client("sns", region_name=AWS_REGION)
+
 # Memory storage configuration
 USE_S3 = os.getenv("USE_S3", "false").lower() == "true"
 S3_BUCKET = os.getenv("S3_BUCKET", "")
@@ -115,6 +119,23 @@ def save_conversation(session_id: str, messages: list[dict]):
         with open(file_path, "w") as f:
             json.dump(messages, f, indent=2)
 
+def notify_sns(session_id: str, user_message: str, assistant_response: str):
+    """Send a notification to the configured SNS topic."""
+    if sns_topic_arn:
+        try:
+            message = {
+                "session_id": session_id,
+                "user_message": user_message,
+                "assistant_response": assistant_response,
+                "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat(),
+            }
+            sns.publish(
+                TopicArn=sns_topic_arn,
+                Message=json.dumps(message, indent=2),
+                Subject=f"New message in session {session_id}",
+            )
+        except ClientError as e:
+            logger.error(f"Failed to send SNS notification: {e}")
 
 def _extract_text(content) -> str:
     """Normalize a LangChain message's content to plain text.
@@ -211,6 +232,8 @@ async def chat(request: ChatRequest):
 
         # Save conversation
         save_conversation(session_id, conversation)
+
+        notify_sns(session_id, request.message, assistant_response)
 
         return ChatResponse(response=assistant_response, session_id=session_id)
 

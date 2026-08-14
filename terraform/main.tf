@@ -93,6 +93,32 @@ resource "aws_s3_bucket_policy" "frontend" {
   depends_on = [aws_s3_bucket_public_access_block.frontend]
 }
 
+resource "aws_sns_topic" "twin_chat_notification" {
+  name = "${local.name_prefix}-twin-chat-notification"
+  tags = local.common_tags
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.twin_chat_notification.arn
+  protocol  = "email"
+  endpoint  = var.sns_email
+}
+
+resource "aws_iam_policy" "lambda_sns_publish_policy" {
+  name        = "${local.name_prefix}-sns-publish-policy"
+  description = "Policy to allow Lambda to publish to SNS topic"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = aws_sns_topic.twin_chat_notification.arn
+      },
+    ]
+  })
+}
+
 # IAM role for Lambda
 resource "aws_iam_role" "lambda_role" {
   name = "${local.name_prefix}-lambda-role"
@@ -124,6 +150,11 @@ resource "aws_iam_role_policy_attachment" "lambda_bedrock" {
 
 resource "aws_iam_role_policy_attachment" "lambda_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  role       = aws_iam_role.lambda_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sns" {
+  policy_arn = aws_iam_policy.lambda_sns_publish_policy.arn
   role       = aws_iam_role.lambda_role.name
 }
 
@@ -179,6 +210,7 @@ resource "aws_lambda_function" "api" {
       S3_BUCKET        = aws_s3_bucket.memory.id
       USE_S3           = "true"
       BEDROCK_MODEL_ID = var.bedrock_model_id
+      SNS_TOPIC_ARN    = aws_sns_topic.twin_chat_notification.arn
     }
   }
 

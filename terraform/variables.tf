@@ -57,3 +57,9 @@ variable "root_domain" {
   type        = string
   default     = ""
 }
+
+variable "sns_email" {
+  description = "Email address for SNS notifications"
+  type        = string
+  default     = "test@test.com"
+}
